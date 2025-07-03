@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes moveLeft {
+  0% { right: -40px; }
+  100% { right: 640px; }
+}
+
+.animate-obstacle {
+  animation: moveLeft 2s linear infinite;
+}
