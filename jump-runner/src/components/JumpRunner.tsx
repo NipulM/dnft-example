@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import douxImage from '../assets/doux.png';
-import { getContract, mint, switchToBaseSepolia } from '../utils/contract';
+import { mint, switchToBaseSepolia } from '../utils/contract';
 
 declare global {
   interface Window {
@@ -9,7 +9,8 @@ declare global {
 }
 
 export default function JumpRunner() {
-  // --- Existing Game State ---
+  // --- Game State ---
+  const [gameStarted, setGameStarted] = useState(false); // New state for game start
   const [isJumping, setIsJumping] = useState(false);
   const [position, setPosition] = useState(0);
   const [score, setScore] = useState(0);
@@ -24,22 +25,6 @@ export default function JumpRunner() {
   const obstacleRef = useRef<HTMLDivElement>(null);
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dinoRef = useRef<HTMLDivElement>(null);
-
-  // 👛 Connect Wallet on component load
-  useEffect(() => {
-    const connectWallet = async () => {
-      try {
-        if (!window.ethereum) return;
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-        }
-      } catch (err) {
-        console.error("Failed to connect wallet:", err);
-      }
-    };
-    connectWallet();
-  }, []);
 
   // ✅ Handle Minting Logic
   const handleMint = async () => {
@@ -62,6 +47,40 @@ export default function JumpRunner() {
     }
   };
 
+  // 🔗 Connect Wallet Logic
+  const handleConnectWallet = async () => {
+    try {
+      if (!window.ethereum) {
+        alert("Please install MetaMask or another wallet extension!");
+        return;
+      }
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts.length > 0) {
+        setAccount(accounts[0]);
+      }
+    } catch (err) {
+      console.error("Failed to connect wallet:", err);
+      alert("Failed to connect wallet. Please try again.");
+    }
+  };
+
+  // 🎮 Start Game Logic
+  const startGame = () => {
+    setGameStarted(true);
+    setScore(0);
+    setGameOver(false);
+    setPosition(0);
+    setIsJumping(false);
+    setAnimationFrame(0);
+    setMintMessage('');
+    if (obstacleRef.current) {
+      obstacleRef.current.style.animation = 'none';
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      obstacleRef.current.offsetHeight; // Trigger reflow to restart animation
+      obstacleRef.current.style.animation = '';
+    }
+  };
+
   // 🔄 Restart logic
   const restart = () => {
     setScore(0);
@@ -70,25 +89,22 @@ export default function JumpRunner() {
     setIsJumping(false);
     setAnimationFrame(0);
     setMintMessage(''); // Clear minting message on restart
-          if (obstacleRef.current) {
-        obstacleRef.current.style.animation = 'none';
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        obstacleRef.current.offsetHeight; // Trigger reflow to restart animation
-        obstacleRef.current.style.animation = '';
-      }
+    if (obstacleRef.current) {
+      obstacleRef.current.style.animation = 'none';
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      obstacleRef.current.offsetHeight; // Trigger reflow to restart animation
+      obstacleRef.current.style.animation = '';
+    }
   };
-  
-  // --- All other game logic (handleJump, game loop, animation, etc.) remains the same ---
-  // ... (Your existing useEffects for animation, jump, game loop, and key press go here)
 
-  // 🦖 Animation loop
+  // 🦖 Animation loop - only run when game is started and not game over
   useEffect(() => {
-    if (gameOver || isJumping) return;
+    if (!gameStarted || gameOver || isJumping) return;
     const animInterval = setInterval(() => {
       setAnimationFrame((prev) => (prev === 2 ? 3 : 2));
     }, 150);
     return () => clearInterval(animInterval);
-  }, [isJumping, gameOver]);
+  }, [gameStarted, isJumping, gameOver]);
 
   // 🕹 Jump logic
   const handleJump = () => {
@@ -115,10 +131,12 @@ export default function JumpRunner() {
     }, 20);
   };
 
-  // 🎮 Game loop
+  // 🎮 Game loop - only run when game is started
   useEffect(() => {
-    if (gameOver) {
-      setAnimationFrame(4);
+    if (!gameStarted || gameOver) {
+      if (gameOver) {
+        setAnimationFrame(4);
+      }
       return;
     }
     gameIntervalRef.current = setInterval(() => {
@@ -144,14 +162,16 @@ export default function JumpRunner() {
         clearInterval(gameIntervalRef.current);
       }
     };
-  }, [gameOver]);
+  }, [gameStarted, gameOver]);
 
   // ⌨ Key press listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
-        if (gameOver) {
+        if (!gameStarted) {
+          startGame();
+        } else if (gameOver) {
           restart();
         } else {
           handleJump();
@@ -160,10 +180,10 @@ export default function JumpRunner() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isJumping, gameOver, restart]); // Added restart to dependency array
+  }, [gameStarted, isJumping, gameOver]);
 
-  const obstacleAnimationClass = !gameOver ? 'animate-obstacle-slide' : '';
-  const groundAnimationClass = !gameOver ? 'animate-ground-slide' : '';
+  const obstacleAnimationClass = gameStarted && !gameOver ? 'animate-obstacle-slide' : '';
+  const groundAnimationClass = gameStarted && !gameOver ? 'animate-ground-slide' : '';
 
   return (
     <div className="relative h-screen bg-gray-100 font-press-start">
@@ -175,10 +195,21 @@ export default function JumpRunner() {
         </div>
       )}
       
+      {!account && (
+        <div className="absolute top-4 left-4 z-10">
+          <button
+            onClick={handleConnectWallet}
+            className="text-sm text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-lg shadow-md transition-colors"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      )}
+      
       <div className="flex flex-col items-center justify-center h-full">
         <h1 className="text-4xl text-gray-700 mb-5">Dino Runner</h1>
         <div className="relative w-[600px] h-[200px] border-b-2 border-gray-700 overflow-hidden bg-gray-100">
-            {/* Dino and Obstacle divs remain the same */}
+            {/* Dino */}
             <div
                 ref={dinoRef}
                 className="absolute bottom-0 left-5 w-6 h-6 bg-no-repeat scale-[2.5] origin-bottom-left mb-[-9px]"
@@ -188,6 +219,7 @@ export default function JumpRunner() {
                 backgroundPosition: `-${animationFrame * 24}px 0`,
                 }}
             ></div>
+            {/* Obstacle */}
             <div
                 ref={obstacleRef}
                 className={`absolute bottom-0 flex items-end ${obstacleAnimationClass}`}
@@ -196,29 +228,51 @@ export default function JumpRunner() {
               <div className="relative w-6 h-12 bg-green-600 rounded-t-lg"><div className="absolute top-2 left-2 w-px h-px bg-green-400 shadow-[3px_8px_0_theme(colors.green.400),10px_18px_0_theme(colors.green.400)]"></div></div>
               <div className="relative w-4 h-8 bg-green-700 rounded-lg mb-2 -ml-2"><div className="absolute top-1 right-1 w-px h-px bg-green-400 shadow-[-2px_5px_0_theme(colors.green.400),-6px_12px_0_theme(colors.green.400)]"></div></div>
             </div>
+            {/* Ground */}
             <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-repeat-x ${groundAnimationClass}`}></div>
         </div>
         <p className="text-2xl text-gray-700 mt-5">Score: {score}</p>
         
-        {gameOver && (
+        {/* Start Screen */}
+        {!gameStarted && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center bg-white bg-opacity-75">
+            <div className="text-gray-700 p-8 bg-gray-100 rounded-lg shadow-xl">
+              <p className="text-lg mb-6">Jump over obstacles and collect points</p>
+              <button
+                onClick={startGame}
+                className="py-3 px-6 text-lg text-white bg-green-500 rounded cursor-pointer hover:bg-green-600 transition-colors"
+              >
+                Start Game
+              </button>
+              <p className="mt-4 text-sm text-gray-500">Or press SPACE to start</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Game Over Screen */}
+        {gameOver && gameStarted && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center bg-white bg-opacity-75">
             <div className="text-gray-700 p-8 bg-gray-100 rounded-lg shadow-xl">
               <h2 className="text-3xl">Game Over!</h2>
               <p className="text-xl my-3">Final Score: {score}</p>
 
-              {/* ✅ New Minting Section */}
-              <button
-                onClick={handleMint}
-                disabled={isMinting || !account}
-                className="mt-2 py-2 px-4 text-base text-white bg-blue-500 rounded cursor-pointer hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
-              >
-                {isMinting ? "Minting..." : "Mint Score as NFT"}
-              </button>
-              {mintMessage && <p className="mt-3 text-sm text-gray-600">{mintMessage}</p>}
+              {/* ✅ Minting Section */}
+              {account && (
+                <>
+                  <button
+                    onClick={handleMint}
+                    disabled={isMinting}
+                    className="mt-2 py-2 px-4 text-base text-white bg-blue-500 rounded cursor-pointer hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
+                  >
+                    {isMinting ? "Minting..." : "Mint Score as NFT"}
+                  </button>
+                  {mintMessage && <p className="mt-3 text-sm text-gray-600">{mintMessage}</p>}
+                </>
+              )}
               
               <button
                 onClick={restart}
-                className="mt-4 py-2 px-4 text-base text-white bg-green-500 rounded cursor-pointer hover:bg-green-600 transition-colors"
+                className={`py-2 px-4 text-base text-white bg-green-500 rounded cursor-pointer hover:bg-green-600 transition-colors ${account ? 'mt-4' : 'mt-2'}`}
               >
                 Restart Game
               </button>
@@ -226,7 +280,9 @@ export default function JumpRunner() {
             </div>
           </div>
         )}
-        {!gameOver && <p className="mt-3 text-gray-500 text-sm">Press SPACE to jump!</p>}
+        
+        {/* Instructions when game is running */}
+        {gameStarted && !gameOver && <p className="mt-3 text-gray-500 text-sm">Press SPACE to jump!</p>}
       </div>
     </div>
   );
