@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import douxImage from '../assets/doux.png';
-import { getContract, mint } from '../utils/contract';
+import { getContract, mint, switchToBaseSepolia } from '../utils/contract';
 
 declare global {
   interface Window {
@@ -51,6 +51,7 @@ export default function JumpRunner() {
     setIsMinting(true);
     setMintMessage("Confirm transaction in your wallet...");
     try {
+      await switchToBaseSepolia();
       await mint(account, score);
       setMintMessage(`Success! Your score of ${score} has been minted as an NFT.`);
     } catch (error) {
