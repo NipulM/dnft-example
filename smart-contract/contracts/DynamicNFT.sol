@@ -5,6 +5,13 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DynamicNFT is ERC1155, Ownable {
+    event StatsUpdated(
+        uint256 indexed tokenId,
+        address indexed owner,
+        uint256 maxScore,
+        uint256 stateId,
+        uint256 totalPlayTime
+    );
     struct PlayerStats {
         uint256 maxScore;
         uint256 stateId;
@@ -19,9 +26,16 @@ contract DynamicNFT is ERC1155, Ownable {
         Ownable(msg.sender)
     {}
 
-    function mint(address to) external onlyOwner returns (uint256) {
+    function mint(address to, uint256 _maxScore) external returns (uint256) {
         uint256 tokenId = nextTokenId;
         nextTokenId++;
+
+        // Store the player's score with the new token ID
+        dnftStats[tokenId] = PlayerStats({
+            maxScore: _maxScore,
+            stateId: 0, // You can update these other stats later
+            playTime: 0
+        });
 
         _mint(to, tokenId, 1, "");
         return tokenId;
@@ -32,7 +46,9 @@ contract DynamicNFT is ERC1155, Ownable {
         uint256 score,
         uint256 state,
         uint256 playTime
-    ) public onlyOwner {
+    ) public {
+        require(balanceOf(msg.sender, tokenId) > 0, "Not token owner");
+
         PlayerStats storage stats = dnftStats[tokenId];
 
         if (score > stats.maxScore) {
@@ -41,6 +57,14 @@ contract DynamicNFT is ERC1155, Ownable {
 
         stats.stateId = state;
         stats.playTime += playTime;
+
+        emit StatsUpdated(
+            tokenId,
+            msg.sender,
+            stats.maxScore,
+            stats.stateId,
+            stats.playTime
+        );
     }
 
     function getStats(
