@@ -22,16 +22,18 @@ contract DynamicNFT is ERC1155, Ownable {
     uint256 public nextTokenId;
 
     constructor()
-        ERC1155("https://example.com/api/item/{id}.json")
+        ERC1155(
+            "https://purple-improved-hippopotamus-960.mypinata.cloud/ipfs/bafkreidqgx423w3nuvcqocjyed4tzf7nv3tayyqsqkk3zjjlkoghf3t5le"
+        )
         Ownable(msg.sender)
     {}
 
-    function mint(address to) external returns (uint256) {
+    function mint(address to, uint256 score) external returns (uint256) {
         uint256 tokenId = nextTokenId;
         nextTokenId++;
 
         dnftStats[tokenId] = PlayerStats({
-            maxScore: 0,
+            maxScore: score,
             stateId: 0,
             playTime: 0
         });

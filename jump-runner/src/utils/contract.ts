@@ -26,14 +26,10 @@ export const getContract = async () => {
  */
 export const mint = async (account: string, score: number) => {
   const contract = await getContract();
-  console.log(
-    "Requesting to mint NFT for account:",
-    account,
-    "with score:",
-    score
-  );
+  console.log("Requesting to mint NFT for account:", account);
 
   // Call the updated mint function on the contract with the score
+  console.log("Minting NFT for account:", account, "with score:", score);
   const tx = await contract.mint(account, score);
 
   // Wait for the transaction to be mined and confirmed
