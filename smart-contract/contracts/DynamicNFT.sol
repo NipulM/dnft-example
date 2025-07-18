@@ -26,14 +26,13 @@ contract DynamicNFT is ERC1155, Ownable {
         Ownable(msg.sender)
     {}
 
-    function mint(address to, uint256 _maxScore) external returns (uint256) {
+    function mint(address to) external returns (uint256) {
         uint256 tokenId = nextTokenId;
         nextTokenId++;
 
-        // Store the player's score with the new token ID
         dnftStats[tokenId] = PlayerStats({
-            maxScore: _maxScore,
-            stateId: 0, // You can update these other stats later
+            maxScore: 0,
+            stateId: 0,
             playTime: 0
         });
 
