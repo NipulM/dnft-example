@@ -92,3 +92,23 @@ export const switchToBaseSepolia = async () => {
     }
   }
 };
+
+export const updateVisualState = async (
+  tokenId: number,
+  newStateId: number,
+  onSuccess: () => void
+) => {
+  const contract = await getContract();
+
+  try {
+    const tx = await contract.updateVisualState(tokenId, newStateId);
+    console.log("Transaction sent:", tx.hash);
+
+    await tx.wait();
+    console.log("Transaction successful:", tx);
+
+    onSuccess();
+  } catch (error) {
+    console.error("Failed to update visual state:", error);
+  }
+};
