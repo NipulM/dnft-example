@@ -1,16 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DynamicNFT is ERC1155, Ownable {
+contract DynamicNFT is ERC721URIStorage, Ownable {
     event StatsUpdated(
         uint256 indexed tokenId,
         address indexed owner,
         uint256 maxScore,
         uint256 stateId,
         uint256 totalPlayTime
+    );
+
+    event NewTokenMinted(
+        uint256 indexed tokenId,
+        address indexed owner,
+        uint256 stateId,
+        string updatedUri
     );
 
     struct PlayerStats {
@@ -24,8 +31,7 @@ contract DynamicNFT is ERC1155, Ownable {
 
     uint256 public nextTokenId;
 
-    constructor() ERC1155("") Ownable(msg.sender) {
-        // Set the initial state URIs (you can also set these using a separate function)
+    constructor() ERC721("DynamicNFT", "DNFT") Ownable(msg.sender) {
         stateFullUris[
             1
         ] = "https://purple-improved-hippopotamus-960.mypinata.cloud/ipfs/bafkreidv5pfjjmipp6yeknhr7jvtahihodvt72osrhcf2blt2252vugmnm";
@@ -45,16 +51,16 @@ contract DynamicNFT is ERC1155, Ownable {
     }
 
     function mint(address to, uint256 score) external returns (uint256) {
-        uint256 tokenId = nextTokenId;
-        nextTokenId++;
+        uint256 tokenId = nextTokenId++;
+        _mint(to, tokenId);
 
         dnftStats[tokenId] = PlayerStats({
             maxScore: score,
-            stateId: 1, // start with state 1
+            stateId: 1,
             playTime: 0
         });
 
-        _mint(to, tokenId, 1, "");
+        _setTokenURI(tokenId, stateFullUris[1]); // Initial state URI
         return tokenId;
     }
 
@@ -63,8 +69,8 @@ contract DynamicNFT is ERC1155, Ownable {
         uint256 score,
         uint256 newState,
         uint256 playTime
-    ) public {
-        require(balanceOf(msg.sender, tokenId) > 0, "Not token owner");
+    ) external {
+        require(ownerOf(tokenId) == msg.sender, "Not token owner");
 
         PlayerStats storage stats = dnftStats[tokenId];
 
@@ -75,9 +81,8 @@ contract DynamicNFT is ERC1155, Ownable {
         if (stats.stateId != newState) {
             stats.stateId = newState;
             string memory newUri = stateFullUris[newState];
-            if (bytes(newUri).length > 0) {
-                emit URI(newUri, tokenId);
-            }
+            require(bytes(newUri).length > 0, "Invalid state URI");
+            _setTokenURI(tokenId, newUri);
         }
 
         stats.playTime += playTime;
@@ -92,20 +97,19 @@ contract DynamicNFT is ERC1155, Ownable {
     }
 
     function updateVisualState(uint256 tokenId, uint256 newStateId) external {
-        require(balanceOf(msg.sender, tokenId) > 0, "Not token owner");
+        require(ownerOf(tokenId) == msg.sender, "Not token owner");
         string memory newUri = stateFullUris[newStateId];
         require(bytes(newUri).length > 0, "Invalid state");
 
         dnftStats[tokenId].stateId = newStateId;
+        _setTokenURI(tokenId, newUri);
 
-        emit URI(newUri, tokenId);
-    }
-
-    function uri(uint256 tokenId) public view override returns (string memory) {
-        PlayerStats memory stats = dnftStats[tokenId];
-        string memory fullUri = stateFullUris[stats.stateId];
-        require(bytes(fullUri).length > 0, "Metadata not set for this state");
-        return fullUri;
+        emit NewTokenMinted(
+            tokenId,
+            msg.sender,
+            dnftStats[tokenId].stateId,
+            newUri
+        );
     }
 
     function getStats(
