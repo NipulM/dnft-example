@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import douxImage from '../assets/doux.png';
-import { mint, switchToBaseSepolia, updateVisualState, getStats } from '../utils/contract';
-import { getAccountNFTs, getOwnedTokenIds } from '../utils/alchemy';
+import { mint, switchToBaseSepolia, updateVisualState, getStats, getAccountNFTs, getOwnedTokenIds } from '../utils/contract';
 
 declare global {
   interface Window {
@@ -32,6 +31,11 @@ export default function JumpRunner() {
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [userNFTs, setUserNFTs] = useState<any[]>([]);
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(false);
+
+  // --- View NFTs State ---
+  const [showNFTsModal, setShowNFTsModal] = useState(false);
+  const [isLoadingNFTsModal, setIsLoadingNFTsModal] = useState(false);
+  const [nftsModalData, setNftsModalData] = useState<any[]>([]);
 
   const obstacleRef = useRef<HTMLDivElement>(null);
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,8 +105,16 @@ export default function JumpRunner() {
       await mint(account, score);
       setMintMessage(`Success! Your score of ${score} has been minted as an NFT.`);
       
-      // Refresh NFT data after minting
-      await loadUserNFTs(account);
+      // Add a small delay to ensure the transaction is reflected on the blockchain
+      setTimeout(async () => {
+        try {
+          await loadUserNFTs(account);
+          console.log("NFT data refreshed after minting");
+        } catch (error) {
+          console.error("Failed to refresh NFT data after minting:", error);
+        }
+      }, 2000); // 2 second delay
+      
     } catch (error) {
       console.error("Minting failed:", error);
       setMintMessage("Minting failed. Please try again.");
@@ -129,6 +141,38 @@ export default function JumpRunner() {
   //     alert("Update stats failed. Please try again.");
   //   }
   // };
+
+  // ✅ Handle View NFTs Logic
+  const handleViewNFTs = async () => {
+    if (!account) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+    
+    setShowNFTsModal(true);
+    setIsLoadingNFTsModal(true);
+    try {
+      await switchToBaseSepolia();
+      const nfts = await getAccountNFTs(account);
+      setNftsModalData(nfts.ownedNfts);
+    } catch (error) {
+      console.error("Failed to load NFTs:", error);
+      alert("Failed to load your NFTs. Please try again.");
+    } finally {
+      setIsLoadingNFTsModal(false);
+    }
+  };
+
+  // ✅ Handle Copy Contract Address
+  const handleCopyContractAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(process.env.REACT_APP_CONTRACT_ADDRESS || '');
+      alert('Contract address copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy contract address:', error);
+      alert('Failed to copy contract address. Please copy manually.');
+    }
+  };
 
   // 🔗 Connect Wallet Logic
   const handleConnectWallet = async () => {
@@ -340,6 +384,19 @@ export default function JumpRunner() {
                 Total NFTs: {userNFTs.length > 0 ? userNFTs.length : 'None'}
               </p>
             )}
+            <button
+              onClick={handleViewNFTs}
+              className="mt-2 text-xs text-white bg-purple-500 hover:bg-purple-600 px-2 py-1 rounded transition-colors"
+            >
+              View My NFTs
+            </button>
+            <button
+              onClick={() => account && loadUserNFTs(account)}
+              disabled={isLoadingTokens}
+              className="mt-1 ml-2 text-xs text-white bg-green-500 hover:bg-green-600 disabled:bg-gray-400 px-2 py-1 rounded transition-colors"
+            >
+              {isLoadingTokens ? "Refreshing..." : "Refresh"}
+            </button>
           </div>
         </div>
       )}
@@ -534,6 +591,95 @@ export default function JumpRunner() {
           </div>
         )}
         
+        {/* NFT View Modal */}
+        {showNFTsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">My NFT Collection</h3>
+                <button
+                  onClick={() => setShowNFTsModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Contract Address Section */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 mb-1">Contract Address:</p>
+                    <p className="text-xs font-mono text-gray-800 break-all">
+                      {process.env.REACT_APP_CONTRACT_ADDRESS || 'Not configured'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCopyContractAddress}
+                    className="ml-3 px-3 py-1 text-xs text-white bg-blue-500 hover:bg-blue-600 rounded transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-xs text-yellow-800">
+                    💡 <strong>Tip:</strong> To see visual updates after upgrading your NFT, you may need to remove and re-add the token in your wallet.
+                  </p>
+                </div>
+              </div>
+              
+              {isLoadingNFTsModal ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Loading your NFTs...</p>
+                </div>
+              ) : nftsModalData.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">You don't have any NFTs yet.</p>
+                  <p className="text-sm text-gray-400 mt-2">Play the game and mint your score to get started!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {nftsModalData.map((nft) => (
+                    <div
+                      key={nft.tokenId}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        {nft.image?.thumbnailUrl && (
+                          <img 
+                            src={nft.image.thumbnailUrl} 
+                            alt={nft.name}
+                            className="w-24 h-24 rounded-lg object-cover mb-3"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <h4 className="font-semibold text-gray-800 text-sm mb-1">{nft.name}</h4>
+                        <p className="text-xs text-gray-500 mb-2">Token ID: {nft.tokenId}</p>
+                        
+                        {/* Stats Display */}
+                        {nft.stats && (
+                          <div className="w-full text-xs text-gray-600 space-y-1">
+                            <div className="flex justify-between">
+                              <span>Max Score:</span>
+                              <span className="font-medium">{nft.stats.maxScore}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>State:</span>
+                              <span className="font-medium">{nft.stats.stateId}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Instructions when game is running */}
         {gameStarted && !gameOver && <p className="mt-3 text-gray-500 text-sm">Press SPACE to jump!</p>}
       </div>

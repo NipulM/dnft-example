@@ -3,12 +3,16 @@ const hre = require("hardhat");
 async function main() {
   const DynamicNFT = await hre.ethers.getContractFactory("DynamicNFT");
   const dynamicNFT = await DynamicNFT.deploy();
+
   await dynamicNFT.waitForDeployment();
 
-  console.log("DynamicNFT deployed to:", await dynamicNFT.getAddress());
+  const address = await dynamicNFT.getAddress();
+  console.log("DynamicNFT deployed to:", address);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
