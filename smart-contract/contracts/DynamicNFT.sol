@@ -26,6 +26,13 @@ contract DynamicNFT is ERC721URIStorage, Ownable {
         uint256 playTime;
     }
 
+    struct TokenInfo {
+        uint256 tokenId;
+        string tokenURI;
+        PlayerStats stats;
+        address owner;
+    }
+
     mapping(uint256 => PlayerStats) public dnftStats;
     mapping(uint256 => string) public stateFullUris; // stateId → full IPFS URI
 
@@ -112,9 +119,48 @@ contract DynamicNFT is ERC721URIStorage, Ownable {
         );
     }
 
-    function getStats(
+    function getTokensOfOwner(
+        address owner
+    ) public view returns (uint256[] memory) {
+        uint256 tokenCount = balanceOf(owner);
+        uint256[] memory tokenIds = new uint256[](tokenCount);
+
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < nextTokenId; i++) {
+            if (ownerOf(i) == owner) {
+                tokenIds[currentIndex] = i;
+                currentIndex++;
+                if (currentIndex == tokenCount) break;
+            }
+        }
+
+        return tokenIds;
+    }
+
+    function getTokenInfo(
         uint256 tokenId
-    ) public view returns (PlayerStats memory) {
-        return dnftStats[tokenId];
+    ) public view returns (TokenInfo memory) {
+        require(tokenId < nextTokenId, "Token does not exist");
+
+        return
+            TokenInfo({
+                tokenId: tokenId,
+                tokenURI: tokenURI(tokenId),
+                stats: dnftStats[tokenId],
+                owner: ownerOf(tokenId)
+            });
+    }
+
+    function getTokensInfoOfOwner(
+        address owner
+    ) public view returns (TokenInfo[] memory) {
+        uint256[] memory tokenIds = getTokensOfOwner(owner);
+        TokenInfo[] memory tokensInfo = new TokenInfo[](tokenIds.length);
+
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            tokensInfo[i] = getTokenInfo(tokenIds[i]);
+        }
+
+        return tokensInfo;
     }
 }
