@@ -13,7 +13,7 @@ contract DynamicNFT is ERC721URIStorage, Ownable {
         uint256 totalPlayTime
     );
 
-    event NewTokenMinted(
+    event UpdatedVisualState(
         uint256 indexed tokenId,
         address indexed owner,
         uint256 stateId,
@@ -104,7 +104,7 @@ contract DynamicNFT is ERC721URIStorage, Ownable {
         dnftStats[tokenId].stateId = newStateId;
         _setTokenURI(tokenId, newUri);
 
-        emit NewTokenMinted(
+        emit UpdatedVisualState(
             tokenId,
             msg.sender,
             dnftStats[tokenId].stateId,
