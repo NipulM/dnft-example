@@ -112,23 +112,23 @@ export default function JumpRunner() {
   };
 
   // ✅ Handle Update Stats Logic
-  const handleUpdateStats = async () => {
-    if (!account) {
-      alert("Please connect your wallet first.");
-      return;
-    }
+  // const handleUpdateStats = async () => {
+  //   if (!account) {
+  //     alert("Please connect your wallet first.");
+  //     return;
+  //   }
     
-    try {
-      // await switchToBaseSepolia();
-      const stats = await getStats(2);
-      console.log("Stats:", stats);
-      // await updateStats(0, 10, 3, 100);
-      // alert("Update stats transaction successful!");
-    } catch (error) {
-      console.error("Update stats failed:", error);
-      alert("Update stats failed. Please try again.");
-    }
-  };
+  //   try {
+  //     // await switchToBaseSepolia();
+  //     const stats = await getStats(2);
+  //     console.log("Stats:", stats);
+  //     // await updateStats(0, 10, 3, 100);
+  //     // alert("Update stats transaction successful!");
+  //   } catch (error) {
+  //     console.error("Update stats failed:", error);
+  //     alert("Update stats failed. Please try again.");
+  //   }
+  // };
 
   // 🔗 Connect Wallet Logic
   const handleConnectWallet = async () => {
@@ -418,7 +418,7 @@ export default function JumpRunner() {
                   <button
                     onClick={handleMint}
                     disabled={isMinting}
-                    className="mt-2 py-2 px-4 text-base text-white bg-blue-500 rounded cursor-pointer hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
+                    className="mt-2 py-2 px-4 w-[85%] text-base text-white bg-blue-500 rounded cursor-pointer hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
                   >
                     {isMinting ? "Minting..." : "Mint Score as NFT"}
                   </button>
@@ -430,19 +430,19 @@ export default function JumpRunner() {
               {account && upgradeInfo.eligible && userNFTs.length > 0 && (
                 <button
                   onClick={() => setShowUpgradeModal(true)}
-                  className="mt-3 py-2 px-4 text-base text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded cursor-pointer hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg animate-pulse"
+                  className="mt-3 py-2 px-4 w-[85%] text-base text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded cursor-pointer hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg animate-pulse"
                   style={{
                     boxShadow: '0 0 20px rgba(147, 51, 234, 0.5), 0 0 40px rgba(236, 72, 153, 0.3)',
                     animation: 'glow 2s ease-in-out infinite alternate'
                   }}
                 >
-                  ✨ Upgrade Your NFT ✨
+                Upgrade Your NFT
                 </button>
               )}
 
               {upgradeMessage && <p className="mt-2 text-sm text-gray-600">{upgradeMessage}</p>}
               
-              {/* Update Stats Button */}
+              {/* Update Stats Button
               {account && (
                 <button
                   onClick={handleUpdateStats}
@@ -450,11 +450,11 @@ export default function JumpRunner() {
                 >
                   Update Stats (Test)
                 </button>
-              )}
+              )} */}
               
               <button
                 onClick={restart}
-                className={`py-2 px-4 text-base text-white bg-green-500 rounded cursor-pointer hover:bg-green-600 transition-colors ${account ? 'mt-4' : 'mt-2'}`}
+                className={`w-[85%] py-2 px-4 text-base text-white bg-green-500 rounded cursor-pointer hover:bg-green-600 transition-colors ${account ? 'mt-4' : 'mt-2'}`}
               >
                 Restart Game
               </button>

@@ -119,18 +119,18 @@ export const updateVisualState = async (
   }
 };
 
-export const updateStats = async (
-  tokenId: number,
-  score: number,
-  newStateId: number,
-  playTime: number
-) => {
-  const contract = await getContract();
-  const tx = await contract.updateStats(tokenId, score, newStateId, playTime);
+// export const updateStats = async (
+//   tokenId: number,
+//   score: number,
+//   newStateId: number,
+//   playTime: number
+// ) => {
+//   const contract = await getContract();
+//   const tx = await contract.updateStats(tokenId, score, newStateId, playTime);
 
-  await tx.wait();
-  console.log("Transaction successful:", tx.hash);
-};
+//   await tx.wait();
+//   console.log("Transaction successful:", tx.hash);
+// };
 
 export const getStats = async (tokenId: number) => {
   const contract = await getContract();

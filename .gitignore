@@ -1,2 +1,4 @@
 .DS_Store
 event-listener
+# Local Netlify folder
+.netlify
