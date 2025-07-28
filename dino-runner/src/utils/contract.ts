@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import dynamicNFTAbi from "../utils/abis/DynamicNFT.json";
+import dynamicNFTAbi from "./abis/DynamicNFT.json";
 
 // Ensure your contract address is set in your .env file
 const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS!;
@@ -100,6 +100,12 @@ export const updateVisualState = async (
 ) => {
   const contract = await getContract();
 
+  console.log(
+    "Updating visual state for tokenId:",
+    tokenId,
+    "to stateId:",
+    newStateId
+  );
   try {
     const tx = await contract.updateVisualState(tokenId, newStateId);
     console.log("Transaction sent:", tx.hash);
@@ -111,4 +117,23 @@ export const updateVisualState = async (
   } catch (error) {
     console.error("Failed to update visual state:", error);
   }
+};
+
+export const updateStats = async (
+  tokenId: number,
+  score: number,
+  newStateId: number,
+  playTime: number
+) => {
+  const contract = await getContract();
+  const tx = await contract.updateStats(tokenId, score, newStateId, playTime);
+
+  await tx.wait();
+  console.log("Transaction successful:", tx.hash);
+};
+
+export const getStats = async (tokenId: number) => {
+  const contract = await getContract();
+  const stats = await contract.getStats(tokenId);
+  return stats;
 };

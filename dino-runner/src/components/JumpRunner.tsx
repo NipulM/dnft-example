@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import douxImage from '../assets/doux.png';
-import { mint, switchToBaseSepolia, updateVisualState } from '../utils/contract';
+import { mint, switchToBaseSepolia, updateVisualState, getStats } from '../utils/contract';
 import { getAccountNFTs, getOwnedTokenIds } from '../utils/alchemy';
 
 declare global {
@@ -108,6 +108,25 @@ export default function JumpRunner() {
       setMintMessage("Minting failed. Please try again.");
     } finally {
       setIsMinting(false);
+    }
+  };
+
+  // ✅ Handle Update Stats Logic
+  const handleUpdateStats = async () => {
+    if (!account) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+    
+    try {
+      // await switchToBaseSepolia();
+      const stats = await getStats(2);
+      console.log("Stats:", stats);
+      // await updateStats(0, 10, 3, 100);
+      // alert("Update stats transaction successful!");
+    } catch (error) {
+      console.error("Update stats failed:", error);
+      alert("Update stats failed. Please try again.");
     }
   };
 
@@ -422,6 +441,16 @@ export default function JumpRunner() {
               )}
 
               {upgradeMessage && <p className="mt-2 text-sm text-gray-600">{upgradeMessage}</p>}
+              
+              {/* Update Stats Button */}
+              {account && (
+                <button
+                  onClick={handleUpdateStats}
+                  className="mt-2 py-2 px-4 text-base text-white bg-orange-500 rounded cursor-pointer hover:bg-orange-600 transition-colors"
+                >
+                  Update Stats (Test)
+                </button>
+              )}
               
               <button
                 onClick={restart}
